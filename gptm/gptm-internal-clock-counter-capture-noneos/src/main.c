@@ -13,6 +13,29 @@
 #endif
 #include <debug.h>
 
+void TIM2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+
+void enable_interrupt()
+{
+    NVIC_InitTypeDef NVIC_InitStruct;
+
+    NVIC_InitStruct.NVIC_IRQChannel = TIM2_IRQn;
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStruct);
+
+    // allow interrupt flag for channel1
+    TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
+}
+
+void TIM2_IRQHandler(void) {
+    if (TIM_GetITStatus(TIM2, TIM_IT_CC1) == SET) {
+        printf("Capture match %u\n", TIM_GetCounter(TIM2));
+        TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
+    }
+}
+
 int main(void)
 {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
@@ -26,6 +49,8 @@ int main(void)
 
     // enable GPIOA clock to use button for TIM2_CH1 input
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+
+    enable_interrupt();
 
     printf("Capture example\n");
 
