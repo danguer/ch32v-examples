@@ -23,6 +23,19 @@ uint16_t read_adc_value() {
     return ADC_GetConversionValue(ADC1);
 }
 
+void do_adc_calibration() {
+    // start calibration
+    printf("Starting calibration\n");
+    ADC_ResetCalibration(ADC1);
+    while(ADC_GetResetCalibrationStatus(ADC1));
+
+    ADC_StartCalibration(ADC1);
+    while(ADC_GetCalibrationStatus(ADC1));
+
+    printf("Calibration finished\n");
+    printf("Calibration value: %d\n", Get_CalibrationValue(ADC1));
+}
+
 int main(void)
 {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
@@ -32,7 +45,6 @@ int main(void)
 
     // enable clock for ADC1
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-    RCC_ADCCLKConfig(RCC_PCLK2_Div8);
 
     // Bus runs at 96Mhz, so make it run at 12Mhz as the max ADC speed is 14Mhz
     RCC_ADCCLKConfig(RCC_PCLK2_Div8);
@@ -53,24 +65,14 @@ int main(void)
     // enable ADC
     ADC_Cmd(ADC1, ENABLE);
 
-    // start calibration
-    printf("Starting calibration\n");
-    ADC_BufferCmd(ADC1, DISABLE); //disable buffer
-    ADC_ResetCalibration(ADC1);
-    while(ADC_GetResetCalibrationStatus(ADC1));
-    ADC_StartCalibration(ADC1);
-    while(ADC_GetCalibrationStatus(ADC1));
-    printf("Calibration finished\n");
-    printf("Calibration value: %d\n", Get_CalibrationValue(ADC1));
-    ADC_BufferCmd(ADC1, ENABLE); //disable buffer
+    // calibrate, this is suggested only after a reset
+    do_adc_calibration();
 
     // enable temperature sensor and Vref
     ADC_TempSensorVrefintCmd(ENABLE);
 
-    // select temperature input to feed into first channel
-
-
     printf("Starting ADC measures\n");
+
     // configure to read from temperature sensor
     // recommended time is 17.1us
     // as the bus clock runs on 12Mhz each cycle is 0.08us so needs at least 213 cycles
@@ -93,7 +95,6 @@ int main(void)
     // but is easier change to read samples first and later just
     // calculate temperature from the average value
     while(1) {
-
         uint16_t temp = read_adc_value();
 
         // to understand the values check the README.md

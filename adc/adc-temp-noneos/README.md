@@ -23,7 +23,7 @@ The formula in the datasheet is:
 ((VSENSE-V25)/Avg_Slope)+25
 ```
 
-which doesn'tmake any sense =)
+which doesn't make any sense =)
 
 As the temperature sensor can read from `-40C` to `85C`
 The range is `125C = 85 - (-40)`
