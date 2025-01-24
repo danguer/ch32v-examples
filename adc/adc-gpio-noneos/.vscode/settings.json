@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "ch32v20x.h": "c",
-        "debug.h": "c",
-        "stdio.h": "c"
-    }
-}
