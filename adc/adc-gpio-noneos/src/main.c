@@ -13,6 +13,32 @@
 #endif
 #include <debug.h>
 
+uint8_t finished_adc = 0;
+
+void ADC1_2_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+
+void enable_interrupt()
+{
+    NVIC_InitTypeDef NVIC_InitStruct;
+
+    NVIC_InitStruct.NVIC_IRQChannel = ADC1_2_IRQn;
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStruct);
+
+    ADC_ITConfig(ADC1, ADC_IT_EOC, ENABLE);
+}
+
+void ADC1_2_IRQHandler(void) {
+    finished_adc = 1;
+    uint16_t value = ADC_GetConversionValue(ADC1);
+    printf("Interruption value: %u\n", value);
+
+    ADC_ClearFlag(ADC1, ADC_FLAG_EOC);
+}
+
+
 uint16_t read_adc_value(uint8_t channel) {
     ADC_RegularChannelConfig(
         ADC1,
@@ -21,10 +47,11 @@ uint16_t read_adc_value(uint8_t channel) {
         ADC_SampleTime_239Cycles5
     );
 
+    finished_adc = 0;
     ADC_SoftwareStartConvCmd(ADC1, ENABLE);
 
     // wait until ADC is completed
-    while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET) {}
+    while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET && finished_adc == 0) {}
 
     // get value
     return ADC_GetConversionValue(ADC1);
@@ -57,6 +84,8 @@ int main(void)
     // BUS runs at 96 Mhz and ADC only can run up to 14Mhz
     // so divide the bus frequency
     RCC_ADCCLKConfig(RCC_PCLK2_Div8);
+
+    enable_interrupt();
 
     // allow GPIO A2 to be analog input
     GPIO_InitTypeDef GPIO_InitStructure = {0};
